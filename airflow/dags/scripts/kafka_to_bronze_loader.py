@@ -14,7 +14,7 @@ w = WorkspaceClient(
 
 VOLUME_INBOX_PATH = "/Volumes/workspace/bronze_cosmetics/inbox"
 BATCH_SIZE = 1000
-MAX_BATCHES_PER_RUN = 5  # Số batch tối đa mỗi lần chạy để đảm bảo task không chạy quá lâu
+MAX_BATCHES_PER_RUN = 150  # Số batch tối đa mỗi lần chạy để đảm bảo task không chạy quá lâu
 batch_data = []
 batches_processed = 0
 

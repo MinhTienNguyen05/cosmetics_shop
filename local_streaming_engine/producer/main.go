@@ -26,7 +26,7 @@ type CosmeticsEvent struct {
 }
 
 const offsetFile = "/opt/airflow/data/producer_offset.txt"
-const batchSize = 2000
+const batchSize = 100000
 
 func readCheckpoint() (int, int) {
 	data, err := os.ReadFile(offsetFile)

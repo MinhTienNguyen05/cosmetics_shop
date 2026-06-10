@@ -1,0 +1,211 @@
+version: '3.8'
+
+# 1. KHAI BÁO MẠNG
+networks:
+  data-network:
+    driver: bridge
+
+# 2. KHAI BÁO Ổ ĐĨA LƯU TRỮ
+volumes:
+  kafka-1-data:
+  kafka-2-data:
+  kafka-3-data:
+  postgres-metadata-data:
+
+
+# 3. KHUNG CẤU HÌNH CHUNG CHO AIRFLOW
+# FIX LỖI 2: Tách riêng environment anchor để có thể merge đúng cú pháp
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow_password@airflow-postgres:5432/airflow_metadata
+  AIRFLOW__CORE__FERNET_KEY: 'FB1Z_3ee-AbcDeFghIjKlMnOpQrStUvWxYz12345678='
+  AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+  _PIP_ADDITIONAL_REQUIREMENTS: "kafka-python databricks-sdk python-dotenv"
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.7.1
+  environment:
+    <<: *airflow-env
+    DATA_PATH: "/opt/airflow/data/"
+    KAFKA_BROKERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./data:/opt/airflow/data
+    - ./.env:/opt/airflow/.env
+  depends_on:
+    airflow-postgres:
+      # FIX LỖI 6: Đợi Postgres thực sự sẵn sàng thay vì chỉ đợi container start
+      condition: service_healthy
+  networks:
+    - data-network
+
+# 4. KHAI BÁO CÁC DỊCH VỤ
+services:
+  # === CỤM KAFKA KRAFT (3 BROKERS) ===
+  kafka-1:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-1
+    ports:
+      - "29092:29092"
+    volumes:
+      - kafka-1-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      # FIX LỖI 5: Thêm min ISR để đảm bảo tính toàn vẹn dữ liệu khi có broker down
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A=='
+    # FIX LỖI 1: Format KRaft storage trước khi khởi động nếu chưa được format
+    command: >
+      bash -c "
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          kafka-storage format --config /etc/kafka/kraft/server.properties --cluster-id ciWo7IWazngRchmPES6q5A==;
+        fi &&
+        /etc/confluent/docker/run"
+    # FIX LỖI 4: Healthcheck để các service phụ thuộc biết Kafka đã sẵn sàng
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - data-network
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-2
+    ports:
+      - "29093:29093"
+    volumes:
+      - kafka-2-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A=='
+    command: >
+      bash -c "
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          kafka-storage format --config /etc/kafka/kraft/server.properties --cluster-id ciWo7IWazngRchmPES6q5A==;
+        fi &&
+        /etc/confluent/docker/run"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - data-network
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-3
+    ports:
+      - "29094:29094"
+    volumes:
+      - kafka-3-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092,PLAINTEXT_HOST://localhost:29094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A=='
+    command: >
+      bash -c "
+        if [ ! -f /var/lib/kafka/data/meta.properties ]; then
+          kafka-storage format --config /etc/kafka/kraft/server.properties --cluster-id ciWo7IWazngRchmPES6q5A==;
+        fi &&
+        /etc/confluent/docker/run"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - data-network
+
+
+  # === CỤM ĐIỀU PHỐI AIRFLOW ===
+  airflow-postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow_password
+      POSTGRES_DB: airflow_metadata
+    volumes:
+      - postgres-metadata-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow", "-d", "airflow_metadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - data-network
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    command: version
+    environment:
+      <<: *airflow-env
+      _AIRFLOW_DB_UPGRADE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: cosmetics_2026
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    restart: always
+
+  airflow-triggerer:
+    <<: *airflow-common
+    container_name: airflow-triggerer
+    command: triggerer
+    restart: always

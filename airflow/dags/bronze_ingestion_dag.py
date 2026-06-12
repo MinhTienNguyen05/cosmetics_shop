@@ -14,10 +14,10 @@ default_args = {
 
 with DAG(
     'cosmetics_bronze_ingestion',
-    max_active_tasks=2,
+    max_active_tasks=10,
     default_args=default_args,
     description='Pipeline đưa dữ liệu E-commerce từ CSV qua Kafka lên Databricks Volumes',
-    schedule_interval='*/5 * * * *',
+    schedule_interval='*/3 * * * *',
     start_date=datetime(2026, 6, 9),
     catchup=False,
     tags=['bronze', 'ingestion', 'kafka'],

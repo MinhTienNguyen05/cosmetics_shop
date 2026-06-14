@@ -9,7 +9,6 @@
 
 ## Executive summary
 This project is an end-to-end **Data Engineering and Analytics** solution built for a high-traffic cosmetics e-commerce platform. It features a custom-built streaming engine that simulates real-world event generation, ingesting **>12 million historical event logs** through a strict Medallion Architecture on Databricks. 
-
 Beyond building a scalable pipeline, this project bridges the gap between raw data and **Actionable Business Insights**—successfully addressing bot traffic mitigation, checkout funnel bottlenecks, and B2B customer segmentation.
 ---
 ## Core Business Impacts & Insights

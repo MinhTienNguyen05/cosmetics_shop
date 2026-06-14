@@ -14,7 +14,7 @@ Beyond building a scalable pipeline, this project bridges the gap between raw da
 
 ---
 ## Core Business Impacts & Insights
-* **Bot & Spam Mitigation: Engineered a Dynamic Blacklisting algorithm using left_anti joins in PySpark. Effectively isolated and filtered out extensive malicious bot traffic (e.g., sessions with >100 clicks/sec) at the Silver layer, ensuring high data purity for downstream financial reporting.
+* **Bot & Spam Mitigation:** Engineered a Dynamic Blacklisting algorithm using left_anti joins in PySpark. Effectively isolated and filtered out extensive malicious bot traffic (e.g., sessions with >100 clicks/sec) at the Silver layer, ensuring high data purity for downstream financial reporting.
 * **Funnel Optimization:** Uncovered a critical revenue leak at the checkout stage (3M Add-to-Carts translated to only 270K Orders). Identified high shipping costs relative to AOV (~$12) as the root cause and proposed a threshold-based "Freeship" strategy.
 * **B2B Wholesale Discovery (RFM):** Built an RFM segmentation model that detected a hidden cluster of "VIP" wholesale buyers (Spa & Salon owners). Despite being a small segment, they demonstrated a **32% conversion rate** (2.5x the platform average) and an **82.1% view-to-order rate**, validating the need for a dedicated B2B portal and 1-on-1 Telesales pipeline.
 

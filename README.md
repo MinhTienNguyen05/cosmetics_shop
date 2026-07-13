@@ -79,15 +79,11 @@ Project dbt ở `databricks_processing/dbt/`, catalog `workspace` (Unity Catalog
     (`materialized=table` — snapshot source), **`dim_user_snapshot` (SCD2 trên `lifetime_segment`)**.
   - 3 facts: `fact_daily_performance`, `fact_user_funnel`, `fact_rfm_segmentation` — grain rõ, FK surrogate key.
 
-> Notebook PySpark (`bronze/silver/gold.ipynb` + `dq_framework.ipynb`
->
-> + `dq/`) còn giữ cho hướng all-purpose cluster (nếu workspace có cluster). Đường **dbt (warehouse) là primary**.
-
 ### Data Quality
 
 - **dbt tests** (`_*_models.yml` + singular): `not_null`, `unique`, `accepted_values`, `relationships` (FK),
   + singular range. Chạy trong `dbt build` → **fail-fast**. **30 test** tổng (staging 7 · silver 6 · gold 17).
-- Lightweight PySpark DQ framework (`databricks_processing/dq/`): 7 rule type, 16 pytest, cho notebook.
+-
 
 ### Observability
 
@@ -109,8 +105,6 @@ Project dbt ở `databricks_processing/dbt/`, catalog `workspace` (Unity Catalog
 
 Cột `stg_bronze_valid`: `_row_hash` (md5 của 9 trường nguồn — computed bằng macro `surrogate_key`) +
 `event_time, event_type, product_id, category_id, category_code, brand, price, user_id, user_session`.
-
-> (Notebook legacy thêm metadata `_source_file, _ingested_at` qua AutoLoader — dbt path không có.)
 
 ### Silver (`workspace.silver_cosmetics`)
 
@@ -154,9 +148,7 @@ Cột `stg_bronze_valid`: `_row_hash` (md5 của 9 trường nguồn — compute
 ├── local_streaming_engine/producer/
 │   ├── main.go / main_test.go          # Kafka producer (100k/run + checkpoint) + 8 unit test
 │   └── Dockerfile                      # Multi-stage build → distroless (không commit binary)
-├── infra/
-│   ├── databricks.yml + resources/     # Databricks Asset Bundle (warehouse + job)
-│   └── catalog_comments.sql            # Unity Catalog comments (docs/lineage)
+
 ├── observability/                      # statsd-mapping, prometheus, alerts, grafana dashboard
 ├── docker-compose.yaml                 # Kafka + Airflow + Prometheus + Grafana (11 services)
 ├── .github/workflows/ci.yml            # CI: ruff/black, go test, pyspark pytest, docker build, dbt parse, bundle validate
@@ -206,15 +198,7 @@ docker compose exec airflow-scheduler bash -c \
 
 Hoặc để Airflow DAG `cosmetics_medallion` tự chạy (unpause + trigger).
 
-### 3. IaC — Databricks Asset Bundle
-
-```bash
-cd infra
-databricks bundle validate -t dev
-databricks bundle deploy -t dev     # provision SQL warehouse
-```
-
-### 4. Test local
+### 3. Test local
 
 ```bash
 python3 -m venv .venv && .venv/bin/python -m pip install pyspark==3.5.1 pytest PyYAML ruff black
@@ -228,7 +212,6 @@ cd local_streaming_engine/producer && go test ./...               # 8 Go test
   Không cần `cluster_id` — đây là lý do chọn dbt thay cho notebook `DatabricksSubmitRunOperator`.
 - **SQL Warehouse CE**: `Serverless Starter Warehouse`
 - **Catalog**: CE dùng catalog `workspace` mặc định (không tạo catalog mới); schemas do dbt tự tạo.
-- **Legacy notebook**: `bronze/silver/gold.ipynb` (PySpark) chỉ dùng được nếu có all-purpose cluster.
 
 ---
 

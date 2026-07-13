@@ -12,7 +12,7 @@ End-to-end **Data Engineering & Analytics** platform cho nền tảng e-commerce
 Một streaming engine tự build (**Go + Kafka**) mô phỏng backend thật, ingest **>12 triệu event logs**
 qua **Medallion Architecture** trên Databricks (Bronze → Silver → Gold) bằng **dbt** chạy trên
 **Serverless SQL Warehouse**, có **Data Quality gate fail-fast**, orchestration bằng **Airflow**,
-IaC bằng **Databricks Asset Bundle**, observability bằng **Prometheus/Grafana**, và dashboard **Power BI**.
+observability bằng **Prometheus/Grafana**, và dashboard **Power BI**.
 
 ---
 
@@ -94,12 +94,6 @@ Project dbt ở `databricks_processing/dbt/`, catalog `workspace` (Unity Catalog
 - Airflow emit **statsd** → `statsd-exporter` → **Prometheus** → **Grafana** (dashboard provisioned, 7 panel).
 - Mapping regex xử lý gotcha FSM của statsd-exporter v0.26 (không match glob multi-wildcard qua UDP).
 - Alert: Prometheus rules (`observability/alerts/`) + Airflow `on_failure_callback` → Slack (`airflow/plugins/alerts.py`).
-
-### IaC
-
-- **Databricks Asset Bundle** (`infra/`): provision SQL warehouse (serverless) + UC comments (`catalog_comments.sql`).
-
----
 
 ## Data dictionary
 

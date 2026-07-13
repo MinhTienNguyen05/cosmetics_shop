@@ -1,4 +1,3 @@
-)
 
 # E-Commerce Cosmetics — Data Engineering Platform
 

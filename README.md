@@ -1,3 +1,5 @@
+)
+
 # E-Commerce Cosmetics — Data Engineering Platform
 
 ![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
@@ -142,13 +144,9 @@ Cột `stg_bronze_valid`: `_row_hash` (md5 của 9 trường nguồn — compute
 │   ├── dbt/                            # dbt project (PRIMARY): models/silver/gold, macros, snapshot, tests
 │   │   ├── profiles.yml / dbt_project.yml
 │   │   └── macros/load_bronze_raw.sql  # COPY INTO inbox → raw
-│   ├── bronze.ipynb / silver.ipynb / gold.ipynb   # (Legacy) PySpark trên cluster
-│   ├── dq_framework.ipynb              # (Legacy) DQ framework mirror (%run trên CE)
-│   └── dq/                             # (Legacy) DQ package: rules, runner, validations.yml, tests
 ├── local_streaming_engine/producer/
 │   ├── main.go / main_test.go          # Kafka producer (100k/run + checkpoint) + 8 unit test
 │   └── Dockerfile                      # Multi-stage build → distroless (không commit binary)
-
 ├── observability/                      # statsd-mapping, prometheus, alerts, grafana dashboard
 ├── docker-compose.yaml                 # Kafka + Airflow + Prometheus + Grafana (11 services)
 ├── .github/workflows/ci.yml            # CI: ruff/black, go test, pyspark pytest, docker build, dbt parse, bundle validate

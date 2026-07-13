@@ -58,3 +58,8 @@ databricks.tfstate
 
 
 infra/
+databricks_processing/dq/
+databricks_processing/bronze.ipynb
+databricks_processing/silver.ipynb
+databricks_processing/gold.ipynb
+databricks_processing/dq_framework.ipynb

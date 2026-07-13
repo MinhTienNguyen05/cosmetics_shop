@@ -1,0 +1,41 @@
+name: cosmetics_platform
+version: 1.0.0
+config-version: 2
+profile: cosmetics_platform
+
+# Chạy trên Databricks SQL Warehouse (Serverless, auto-start) 
+# dbt run / dbt test được Airflow trigger qua BashOperator.
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  cosmetics_platform:
+    +database: workspace          # Unity Catalog catalog
+    +materialized: view
+    staging:
+      +schema: bronze_cosmetics
+      +materialized: incremental
+      +incremental_strategy: merge
+      +file_format: delta
+    silver:
+      +schema: silver_cosmetics
+      +materialized: incremental
+      +incremental_strategy: merge
+      +file_format: delta
+    gold:
+      +schema: gold_cosmetics
+      +materialized: incremental
+      +incremental_strategy: merge
+      +file_format: delta
+
+snapshots:
+  cosmetics_platform:
+    +target_schema: gold_cosmetics
+    +target_database: workspace
+    +file_format: delta

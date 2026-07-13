@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_bronze_valid
+    description: "Clean Bronze events, dedup theo _row_hash (NULL/header/non-numeric price đã sang quarantine)."
+    columns:
+      - name: _row_hash
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+
+  - name: stg_bronze_quarantine
+    description: "Dòng bị loại ở Bronze: NULL key, header CSV, price non-numeric."
+    columns:
+      - name: _row_hash
+        tests:
+          - unique
+          - not_null

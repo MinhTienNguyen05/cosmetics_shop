@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: workspace
+    schema: bronze_cosmetics
+    description: "Raw events land qua COPY INTO (macro load_bronze_raw) từ Volume inbox."
+    tables:
+      - name: cosmetics_events_bronze_raw
+        columns:
+          - name: event_time
+          - name: event_type
+          - name: product_id
+          - name: category_id
+          - name: category_code
+          - name: brand
+          - name: price
+          - name: user_id
+          - name: user_session

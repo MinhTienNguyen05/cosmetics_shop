@@ -1,0 +1,80 @@
+{
+  "title": "Airflow Overview",
+  "uid": "airflow-overview",
+  "schemaVersion": 39,
+  "version": 2,
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Scheduler Heartbeat (2m rate)",
+      "id": 1,
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "refId": "A", "expr": "rate(airflow_scheduler_heartbeat[2m])" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "type": "stat",
+      "title": "Running Tasks (now)",
+      "id": 5,
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "refId": "A", "expr": "airflow_executor{state=\"running_tasks\"}" }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "type": "stat",
+      "title": "Queued Tasks (now)",
+      "id": 6,
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "refId": "A", "expr": "airflow_executor{state=\"queued_tasks\"}" }],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "type": "stat",
+      "title": "Task Runs Completed (15m rate)",
+      "id": 2,
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "refId": "A", "expr": "sum(rate(airflow_task_duration_seconds_count[15m]))" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Task Duration (p95) by dag_id / task_id (15m window)",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(airflow_task_duration_seconds_bucket[15m])) by (le, dag_id, task_id))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Task Runs (15m rate) by dag_id / task_id",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(airflow_task_duration_seconds_count[15m])) by (dag_id, task_id)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Task Status Details (15m rate)",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(airflow_task_finish_total[15m])) by (dag_id, task_id, state)",
+          "legendFormat": "{{dag_id}} - {{task_id}} - {{state}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    }
+  ]
+}

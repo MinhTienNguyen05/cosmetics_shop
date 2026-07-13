@@ -1,4 +1,5 @@
 import os
+
 from databricks.sdk import WorkspaceClient
 from dotenv import load_dotenv
 
@@ -8,8 +9,7 @@ load_dotenv(dotenv_path="../.env")
 try:
     # Khởi tạo Client
     w = WorkspaceClient(
-        host=os.environ.get("DATABRICKS_HOST"),
-        token=os.environ.get("DATABRICKS_TOKEN")
+        host=os.environ.get("DATABRICKS_HOST"), token=os.environ.get("DATABRICKS_TOKEN")
     )
 
     # Gọi thử một hàm cơ bản: Lấy danh sách các Cluster đang chạy

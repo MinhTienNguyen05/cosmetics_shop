@@ -1,7 +1,60 @@
+# ===== Data & logs =====
 data/
-.DS_Store
-_pycache__/
+query/
+*.log
 airflow/logs/
 airflow/plugins/
+
+# ===== OS / editor =====
+.DS_Store
+.idea/
+.vscode/
+.claude/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+# Spark local artifacts (smoke tests)
+spark-warehouse/
+metastore_db/
+derby.log
+/tmp/cosm_wh
+
+# ===== Go: KHÔNG commit binary producer =====
+# Binary được build bằng Dockerfile multi-stage, không lưu trong repo.
+airflow/dags/scripts/producer
+local_streaming_engine/producer/producer
+local_streaming_engine/producer/*.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# ===== Secrets / local env =====
 .env
-query/
+.env.*
+!.env.example
+
+# ===== Databricks / IaC =====
+.databricks/
+.bundle/
+databricks.tfstate
+.terraform/
+*.tfplan
+
+# ===== Notebooks: outputs lớn =====
+*.ipynb_checkpoints/
+
+
+infra/

@@ -1,0 +1,13 @@
+# Python dependencies cho custom Airflow image.
+# Provider versions được resolve bằng constraints-2.7.1 (xem airflow/Dockerfile).
+# Thay thế hoàn toàn _PIP_ADDITIONAL_REQUIREMENTS (anti-pattern build-time mỗi lần khởi động).
+
+# KHÔNG CẦN với dbt-databricks path: DAG chỉ dùng BashOperator gọi dbt, kết nối Databricks
+# qua dbt profiles.yml. Provider này chỉ cho DatabricksSubmitRunOperator / DatabricksSqlOperator
+# / DatabricksNotebookOperator (luồng notebook legacy). Bỏ comment nếu quay lại notebook path.
+# apache-airflow-providers-databricks
+
+# Loader Kafka->Databricks Volume (airflow/dags/scripts/kafka_to_bronze_loader.py).
+kafka-python
+databricks-sdk
+python-dotenv

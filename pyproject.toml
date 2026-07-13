@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+extend-exclude = '''
+/(
+    \.venv
+  | databricks_processing/.*\.ipynb
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["*.ipynb", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Airflow DAG dùng Jinja templating + dynamic import; ignore import order.
+"airflow/dags/*.py" = ["I"]

@@ -13,6 +13,8 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// CosmeticsEvent là payload JSON đẩy lên topic ecommerce_events.
+// Tất cả field giữ dạng string để bảo toàn đúng trạng thái nguồn (Bronze sẽ cast kiểu).
 type CosmeticsEvent struct {
 	EventTime    string `json:"event_time"`
 	EventType    string `json:"event_type"`
@@ -25,11 +27,38 @@ type CosmeticsEvent struct {
 	UserSession  string `json:"user_session"`
 }
 
-const offsetFile = "/opt/airflow/data/producer_offset.txt"
-const batchSize = 100000
+const (
+	offsetFile  = "/opt/airflow/data/producer_offset.txt"
+	batchSize   = 100000
+	sendBatchAt = 500 // ngưỡng số message trong 1 lô trước khi flush Kafka
+)
 
-func readCheckpoint() (int, int) {
-	data, err := os.ReadFile(offsetFile)
+// numColumns là số cột hợp lệ của 1 dòng CSV event.
+const numColumns = 9
+
+// parseRecord ánh xạ 1 dòng CSV → CosmeticsEvent và validate cơ bản.
+// Trả về error khi dòng thiếu cột (malformed) — Bronze sẽ không bao giờ nhận các dòng này.
+func parseRecord(record []string) (CosmeticsEvent, error) {
+	if len(record) < numColumns {
+		return CosmeticsEvent{}, fmt.Errorf("malformed row: expect %d columns, got %d", numColumns, len(record))
+	}
+	return CosmeticsEvent{
+		EventTime:    record[0],
+		EventType:    record[1],
+		ProductID:    record[2],
+		CategoryID:   record[3],
+		CategoryCode: record[4],
+		Brand:        record[5],
+		Price:        record[6],
+		UserID:       record[7],
+		UserSession:  record[8],
+	}, nil
+}
+
+// readCheckpoint đọc (fileIdx, recordOffset) đã lưu. File chưa có → (0,0).
+// Hàm lấy path làm tham số để dễ test và không phụ thuộc filesystem toàn cục.
+func readCheckpoint(path string) (int, int) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, 0
 	}
@@ -42,20 +71,23 @@ func readCheckpoint() (int, int) {
 	return fileIdx, recordOffset
 }
 
-
-func saveCheckpoint(fileIdx int, recordOffset int) {
+// saveCheckpoint ghi atomic-enough (ghi đè) trạng thái (fileIdx, recordOffset).
+func saveCheckpoint(path string, fileIdx int, recordOffset int) error {
 	state := fmt.Sprintf("%d,%d", fileIdx, recordOffset)
-	os.WriteFile(offsetFile, []byte(state), 0644)
+	return os.WriteFile(path, []byte(state), 0644)
+}
+
+// pickBroker lấy broker đầu tiên từ biến KAFKA_BROKERS (comma-separated),
+// fallback về kafka-1:9092 khi chưa set.
+func pickBroker(envBroker string) string {
+	if envBroker == "" {
+		return "kafka-1:9092"
+	}
+	return strings.TrimSpace(strings.Split(envBroker, ",")[0])
 }
 
 func main() {
-	brokerAddr := os.Getenv("KAFKA_BROKERS")
-	if brokerAddr == "" {
-		brokerAddr = "kafka-1:9092"
-	} else {
-		parts := strings.Split(brokerAddr, ",")
-		brokerAddr = parts[0]
-	}
+	brokerAddr := pickBroker(os.Getenv("KAFKA_BROKERS"))
 
 	writer := &kafka.Writer{
 		Addr:     kafka.TCP(brokerAddr),
@@ -70,7 +102,7 @@ func main() {
 		"/opt/airflow/data/2019-Dec.csv",
 	}
 
-	startFileIdx, recordOffset := readCheckpoint()
+	startFileIdx, recordOffset := readCheckpoint(offsetFile)
 
 	if startFileIdx >= len(fileNames) {
 		log.Println("Đã xử lý xong toàn bộ các file. Không còn dữ liệu để đẩy.")
@@ -89,7 +121,7 @@ func main() {
 		}
 
 		reader := csv.NewReader(file)
-		_, _ = reader.Read()
+		_, _ = reader.Read() // bỏ qua dòng header
 
 		currentRecord := 0
 
@@ -113,9 +145,9 @@ func main() {
 		for {
 			record, err := reader.Read()
 			if err != nil {
+				// Xả nốt lô dư khi hết file.
 				if len(messageBatch) > 0 {
-					errWrite := writer.WriteMessages(context.Background(), messageBatch...)
-					if errWrite != nil {
+					if errWrite := writer.WriteMessages(context.Background(), messageBatch...); errWrite != nil {
 						log.Printf("Lỗi khi gửi message dư cuối file %s: %v\n", filePath, errWrite)
 					}
 					messageBatch = nil
@@ -123,16 +155,11 @@ func main() {
 				break
 			}
 
-			event := CosmeticsEvent{
-				EventTime:    record[0],
-				EventType:    record[1],
-				ProductID:    record[2],
-				CategoryID:   record[3],
-				CategoryCode: record[4],
-				Brand:        record[5],
-				Price:        record[6],
-				UserID:       record[7],
-				UserSession:  record[8],
+			event, err := parseRecord(record)
+			if err != nil {
+				// Bỏ qua dòng malformed (thiếu cột) — không đẩy rác vào Kafka.
+				log.Printf("Bỏ qua dòng lỗi tại file %s: %v\n", filePath, err)
+				continue
 			}
 
 			eventJSON, _ := json.Marshal(event)
@@ -145,15 +172,16 @@ func main() {
 			currentRecord++
 			sentCount++
 
-			if len(messageBatch) >= 500 || sentCount >= batchSize {
-				errWrite := writer.WriteMessages(context.Background(), messageBatch...)
-				if errWrite != nil {
+			if len(messageBatch) >= sendBatchAt || sentCount >= batchSize {
+				if errWrite := writer.WriteMessages(context.Background(), messageBatch...); errWrite != nil {
 					log.Printf("Lỗi khi gửi message tại file %s: %v\n", filePath, errWrite)
 				}
 				messageBatch = nil
 			}
 			if sentCount >= batchSize {
-				saveCheckpoint(i, currentRecord)
+				if err := saveCheckpoint(offsetFile, i, currentRecord); err != nil {
+					log.Printf("Cảnh báo: không lưu được checkpoint: %v\n", err)
+				}
 				file.Close()
 				log.Printf("Đã đẩy đủ %d sự kiện cho chu kỳ này. Lưu checkpoint và thoát.\n", sentCount)
 				return
@@ -162,7 +190,9 @@ func main() {
 
 		file.Close()
 
-		saveCheckpoint(i+1, 0)
+		if err := saveCheckpoint(offsetFile, i+1, 0); err != nil {
+			log.Printf("Cảnh báo: không lưu được checkpoint sau file %s: %v\n", filePath, err)
+		}
 		log.Printf("Đã xử lý xong toàn bộ file: %s\n", filePath)
 	}
 

@@ -31,7 +31,7 @@ default_args = {
 with DAG(
     dag_id="cosmetics_medallion",
     default_args=default_args,
-    description="Bronze->Silver->Gold via dbt on SQL Warehouse",
+    description="Bronze -> Silver -> Gold via dbt on SQL Warehouse",
     schedule="*/5 * * * *",
     start_date=datetime(2026, 6, 9),
     catchup=False,
@@ -55,7 +55,7 @@ with DAG(
         env={"DBT_PROFILES_DIR": DBT_DIR, **os.environ},
     )
 
-    # dbt build = models + snapshot (SCD2) + tests (fail-fast DQ gate).
+    # dbt build = models + snapshot (SCD2) + tests (fail-fast DQ gate)
     dbt_build = BashOperator(
         task_id="dbt_build",
         bash_command=f"cd {DBT_DIR} && {DBT_BIN} build --profiles-dir .",

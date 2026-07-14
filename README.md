@@ -41,7 +41,6 @@ Chúng tôi sử dụng `dbt-databricks` kết nối qua Serverless SQL Warehous
 * **Orchestration:** Apache Airflow (`cosmetics_medallion` DAG) với lịch chạy định kỳ 5 phút/lần.
 * **Data Quality:** Hệ thống tích hợp sẵn **30 tests** (unique, not_null, relationships, accepted_values) chạy ngay sau mỗi model.
 * **Governance:** Toàn bộ bảng được quản lý bằng **Unity Catalog**, tự động tạo lineage và quản lý phân quyền.
-* **CI/CD:** Quy trình kiểm thử nghiêm ngặt bao gồm linting (Ruff/Black), quét lỗ hổng bảo mật (Gitleaks) và dbt parse/validate qua GitHub Actions.
 
 ## Serving
 

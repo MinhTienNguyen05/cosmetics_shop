@@ -18,8 +18,7 @@ MAX_BATCHES_PER_RUN = 250
 
 
 def is_valid_event(ev):
-    """Defense-in-depth: chặn row thiếu khoá chính trước khi đẩy lên Volume.
-    Bronze vẫn có quarantine riêng, nhưng lọc sớm ở đây giảm rác trong inbox."""
+    """Defense-in-depth: chặn row thiếu khoá chính trước khi đẩy lên Volume."""
     return isinstance(ev, dict) and bool(ev.get("user_id")) and bool(ev.get("product_id"))
 
 
@@ -27,7 +26,6 @@ def flush_and_upload(data_list):
     if not data_list:
         return False
 
-    # Timestamp mili-giây -> tên file unique, không bị ghi đè.
     filename = f"events_batch_{int(time.time() * 1000)}.json"
     local_filepath = f"/tmp/{filename}"
 
@@ -45,7 +43,7 @@ def flush_and_upload(data_list):
     return True
 
 
-# Kafka Consumer CHỐNG RỚT DATA: tắt auto-commit, chỉ commit sau khi upload thành công.
+# Kafka Consumer: tắt auto-commit, chỉ commit sau khi upload thành công.
 consumer = KafkaConsumer(
     "ecommerce_events",
     bootstrap_servers=["kafka-1:9092"],
@@ -83,7 +81,6 @@ try:
                 print("Đã đạt giới hạn batch, tạm dừng để nhường tài nguyên.")
                 break
 
-    # Xả nốt dữ liệu đuôi còn dở dang.
     if len(batch_data) > 0:
         print("Phát hiện dữ liệu tồn đọng cuối cùng, đang xả nốt...")
         if flush_and_upload(batch_data):

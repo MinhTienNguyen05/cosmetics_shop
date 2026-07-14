@@ -13,8 +13,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// CosmeticsEvent là payload JSON đẩy lên topic ecommerce_events.
-// Tất cả field giữ dạng string để bảo toàn đúng trạng thái nguồn (Bronze sẽ cast kiểu).
+
 type CosmeticsEvent struct {
 	EventTime    string `json:"event_time"`
 	EventType    string `json:"event_type"`
@@ -30,14 +29,11 @@ type CosmeticsEvent struct {
 const (
 	offsetFile  = "/opt/airflow/data/producer_offset.txt"
 	batchSize   = 100000
-	sendBatchAt = 500 // ngưỡng số message trong 1 lô trước khi flush Kafka
+	sendBatchAt = 500
 )
 
-// numColumns là số cột hợp lệ của 1 dòng CSV event.
 const numColumns = 9
 
-// parseRecord ánh xạ 1 dòng CSV → CosmeticsEvent và validate cơ bản.
-// Trả về error khi dòng thiếu cột (malformed) — Bronze sẽ không bao giờ nhận các dòng này.
 func parseRecord(record []string) (CosmeticsEvent, error) {
 	if len(record) < numColumns {
 		return CosmeticsEvent{}, fmt.Errorf("malformed row: expect %d columns, got %d", numColumns, len(record))
@@ -55,8 +51,7 @@ func parseRecord(record []string) (CosmeticsEvent, error) {
 	}, nil
 }
 
-// readCheckpoint đọc (fileIdx, recordOffset) đã lưu. File chưa có → (0,0).
-// Hàm lấy path làm tham số để dễ test và không phụ thuộc filesystem toàn cục.
+
 func readCheckpoint(path string) (int, int) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -71,14 +66,12 @@ func readCheckpoint(path string) (int, int) {
 	return fileIdx, recordOffset
 }
 
-// saveCheckpoint ghi atomic-enough (ghi đè) trạng thái (fileIdx, recordOffset).
 func saveCheckpoint(path string, fileIdx int, recordOffset int) error {
 	state := fmt.Sprintf("%d,%d", fileIdx, recordOffset)
 	return os.WriteFile(path, []byte(state), 0644)
 }
 
-// pickBroker lấy broker đầu tiên từ biến KAFKA_BROKERS (comma-separated),
-// fallback về kafka-1:9092 khi chưa set.
+
 func pickBroker(envBroker string) string {
 	if envBroker == "" {
 		return "kafka-1:9092"
@@ -121,7 +114,7 @@ func main() {
 		}
 
 		reader := csv.NewReader(file)
-		_, _ = reader.Read() // bỏ qua dòng header
+		_, _ = reader.Read()
 
 		currentRecord := 0
 
@@ -130,7 +123,7 @@ func main() {
 			for currentRecord < recordOffset {
 				_, err := reader.Read()
 				if err != nil {
-					break // Hết file
+					break
 				}
 				currentRecord++
 			}
@@ -145,7 +138,6 @@ func main() {
 		for {
 			record, err := reader.Read()
 			if err != nil {
-				// Xả nốt lô dư khi hết file.
 				if len(messageBatch) > 0 {
 					if errWrite := writer.WriteMessages(context.Background(), messageBatch...); errWrite != nil {
 						log.Printf("Lỗi khi gửi message dư cuối file %s: %v\n", filePath, errWrite)
@@ -157,7 +149,6 @@ func main() {
 
 			event, err := parseRecord(record)
 			if err != nil {
-				// Bỏ qua dòng malformed (thiếu cột) — không đẩy rác vào Kafka.
 				log.Printf("Bỏ qua dòng lỗi tại file %s: %v\n", filePath, err)
 				continue
 			}

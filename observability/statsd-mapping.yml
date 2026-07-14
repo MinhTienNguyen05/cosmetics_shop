@@ -1,17 +1,8 @@
-# statsd-exporter mapping: convert Airflow 2.7 statsd metrics -> Prometheus.
-#
-# Định dạng THẬT (verify --log.level=debug): prefix=airflow, separator=".",
-# dag_id/task_id/state EMBED trong tên. type: |c counter, |ms timer, |g gauge.
-#
-# LƯU Ý statsd-exporter v0.26: glob multi-wildcard (airflow.dag.*.*.duration,
-# airflow.ti.finish.*.*.*) KHÔNG match qua UDP (FSM backtracking fail). Chỉ
-# exact + glob 1-wildcard match. -> dùng REGEX anchored cho mọi pattern multi-segment.
-# KHÔNG dùng fallback tổng hợp (gauge+counter+timer -> "already registered" conflict).
 defaults:
   ttl: 86400
 
 mappings:
-  # Scheduler heartbeat (counter)
+  # Scheduler heartbeat
   - match: "airflow.scheduler_heartbeat"
     name: "airflow_scheduler_heartbeat"
 
@@ -24,7 +15,7 @@ mappings:
       task_id: "$2"
     timer_type: "histogram"
 
-  # Task instance finish (counter): airflow.ti.finish.<dag>.<task>.<state>
+  # Task instance finish: airflow.ti.finish.<dag>.<task>.<state>
   - match: '^airflow\.ti\.finish\.([^.]+)\.([^.]+)\.(failed|success|up_for_retry|upstream_failed|skipped)$'
     match_type: "regex"
     name: "airflow_task_finish_total"

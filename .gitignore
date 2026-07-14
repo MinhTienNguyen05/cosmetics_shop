@@ -31,8 +31,7 @@ metastore_db/
 derby.log
 /tmp/cosm_wh
 
-# ===== Go: KHÔNG commit binary producer =====
-# Binary được build bằng Dockerfile multi-stage, không lưu trong repo.
+
 airflow/dags/scripts/producer
 local_streaming_engine/producer/producer
 local_streaming_engine/producer/*.exe

@@ -14,7 +14,7 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Kafka JMX exporter (optional): bật jmx-exporter sidecar cho kafka-* thì bỏ comment.
+  # Kafka JMX exporter (optional): bật jmx-exporter sidecar cho kafka
   # - job_name: kafka
   #   static_configs:
   #     - targets: ["kafka-1:7071", "kafka-2:7071", "kafka-3:7071"]

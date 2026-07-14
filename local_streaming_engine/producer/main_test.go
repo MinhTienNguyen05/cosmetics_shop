@@ -24,8 +24,6 @@ func TestParseRecord_Malformed(t *testing.T) {
 }
 
 func TestParseRecord_HeaderRejected(t *testing.T) {
-	// Dòng header CSV có đúng 9 cột nên parseRecord thành công ở tầng parse;
-	// việc chặn header thực sự nằm ở Bronze (quarantine). Ở đây chỉ assert parse ổn định.
 	header := []string{"event_time", "event_type", "product_id", "category_id", "category_code", "brand", "price", "user_id", "user_session"}
 	if _, err := parseRecord(header); err != nil {
 		t.Fatalf("header should parse without error (filtering happens downstream): %v", err)
@@ -77,11 +75,9 @@ func TestPickBroker(t *testing.T) {
 	}
 }
 
-// sanity: offsetFile hằng số đúng path Airflow mount.
 func TestOffsetFilePath(t *testing.T) {
 	if offsetFile != "/opt/airflow/data/producer_offset.txt" {
 		t.Errorf("offsetFile changed: %s", offsetFile)
 	}
-	// tránh unused import warning nếu các test trên không dùng os.
 	_ = os.Getenv("HOME")
 }

@@ -14,30 +14,23 @@ volumes:
 
 
 # 3. KHUNG CẤU HÌNH CHUNG CHO AIRFLOW
-# FIX LỖI 2: Tách riêng environment anchor để có thể merge đúng cú pháp
 x-airflow-env: &airflow-env
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  # Credentials đọc từ .env (xem .env.example). Không hardcode trong compose.
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_PG_PASSWORD:-airflow_password}@airflow-postgres:5432/airflow_metadata
   AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-FB1Z_3ee-AbcDeFghIjKlMnOpQrStUvWxYz12345678=}
   AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
-  # Databricks workspace cho dbt (profiles.yml) + loader. Luồng dbt-databricks chỉ cần
-  # HOST + TOKEN + HTTP_PATH (SQL Warehouse) — KHÔNG cần cluster_id hay provider operators.
+
   DATABRICKS_HOST: ${DATABRICKS_HOST:-}
   DATABRICKS_TOKEN: ${DATABRICKS_TOKEN:-}
-  # KHÔNG dùng trong luồng dbt-databricks. Chỉ cần nếu quay lại notebook path
+
   # (DatabricksSubmitRunOperator) hoặc deploy DAB từ trong container Airflow.
   # DATABRICKS_CLUSTER_ID: ${DATABRICKS_CLUSTER_ID:-}
   DATABRICKS_HTTP_PATH: ${DATABRICKS_HTTP_PATH:-}
-  # Statsd -> Prometheus (observability, Phase 3).
   AIRFLOW__METRICS__STATSD_ON: 'True'
   AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
   AIRFLOW__METRICS__STATSD_PORT: '8125'
 
 x-airflow-common: &airflow-common
-  # Custom image: build Go producer + pip install requirements.txt (thay _PIP_ADDITIONAL_REQUIREMENTS).
-  # Chỉ 1 service (airflow-scheduler) khai báo `build:`; các service khác dùng chung image này
-  # (tránh lỗi buildx "image already exists" khi nhiều service cùng export 1 tag).
   image: cosmetics-airflow:2.7.1
   environment:
     <<: *airflow-env
@@ -53,14 +46,12 @@ x-airflow-common: &airflow-common
     - ./.env:/opt/airflow/.env
   depends_on:
     airflow-postgres:
-      # FIX LỖI 6: Đợi Postgres thực sự sẵn sàng thay vì chỉ đợi container start
       condition: service_healthy
   networks:
     - data-network
 
 # 4. KHAI BÁO CÁC DỊCH VỤ
 services:
-  # === CỤM KAFKA KRAFT (3 BROKERS) ===
   kafka-1:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka-1
@@ -173,7 +164,6 @@ services:
       - data-network
 
 
-  # === CỤM ĐIỀU PHỐI AIRFLOW ===
   airflow-postgres:
     image: postgres:13
     container_name: airflow-postgres
@@ -240,8 +230,8 @@ services:
     volumes:
       - ./observability/statsd-mapping.yml:/etc/statsd-exporter/mapping.yml
     ports:
-      - "9102:9102" # /metrics (Prometheus scrape)
-      - "9125:9125/udp" # statsd ingest (Airflow gửi tới đây)
+      - "9102:9102" 
+      - "9125:9125/udp"
     networks:
       - data-network
 

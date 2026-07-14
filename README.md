@@ -10,13 +10,13 @@
 
 ## Tổng quan dự án
 
-Đây là nền tảng kỹ thuật dữ liệu (Data Platform) chuyên sâu dành cho sàn thương mại điện tử mỹ phẩm, được thiết kế để xử lý luồng dữ liệu thời gian thực (real-time) và phân tích chuyên sâu (OLAP)[cite: 2, 3]. Hệ thống áp dụng kiến trúc **Medallion (Bronze/Silver/Gold)** trên nền tảng **Delta Lake & Unity Catalog**, cho phép xử lý hơn 12 triệu dòng dữ liệu sự kiện với độ tin cậy và khả năng mở rộng cao.
+Đây là nền tảng kỹ thuật dữ liệu (Data Platform) chuyên sâu dành cho sàn thương mại điện tử mỹ phẩm, được thiết kế để xử lý luồng dữ liệu thời gian thực và phân tích chuyên sâu. Hệ thống áp dụng kiến trúc **Medallion (Bronze/Silver/Gold)** trên nền tảng **Delta Lake & Unity Catalog**, cho phép xử lý hơn 12 triệu dòng dữ liệu sự kiện với độ tin cậy và khả năng mở rộng cao.
 
 ## Kiến trúc hệ thống
 
-Hệ thống tuân thủ nguyên tắc **Idempotent (tính bất biến)** trong mọi tầng xử lý, đảm bảo dữ liệu không bị trùng lặp khi chạy lại pipeline:
+Hệ thống tuân thủ nguyên tắc Idempotent trong mọi tầng xử lý, đảm bảo dữ liệu không bị trùng lặp khi chạy lại pipeline:
 
-![1784001952354](image/README/1784001952354.png)
+![1784004368127](image/README/1784004368127.png)
 
 ## Medallion Architecture
 

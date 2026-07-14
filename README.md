@@ -16,7 +16,7 @@
 
 Hệ thống tuân thủ nguyên tắc Idempotent trong mọi tầng xử lý, đảm bảo dữ liệu không bị trùng lặp khi chạy lại pipeline:
 
-![1784004368127](image/README/1784004368127.png)
+![1784004936883](image/README/1784004936883.png)
 
 ## Medallion Architecture
 
